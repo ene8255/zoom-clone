@@ -1,5 +1,6 @@
+// server using ws
 import http from "http";
-import SocketIO from "socket.io";
+import WebSocket from "ws";
 import express from "express";
 
 const app = express();
@@ -15,30 +16,25 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 // app.listen(3000, handleListen);
 
 
-// http server와 socket.io server 같이 실행
-const httpServer = http.createServer(app);
-const wsServer = SocketIO(httpServer);   // http://localhost:3000/socket.io/socket.io.js에 접속해보면 socket.io가 제공하는 기능을 볼 수 있음 -> 이것을 client에도 적용시켜 줘야 기능을 사용할 수 있음
+// http server와 WebSocket server 같이 실행
+const server = http.createServer(app);
 
-wsServer.on("connection", (socket) => {
-    socket.on("enter_room", (msg, done) => {
-        console.log(msg);
-        setTimeout(() => {
-            done();   // back-end에서 front-end 함수 실행 가능!!
-        }, 5000);
-    });
-});
-
-/*
 const wss = new WebSocket.Server({ server });
+
 const sockets = [];   // fake db
+
 wss.on("connection", (socket) => {
     // console.log(socket);
     sockets.push(socket);
     socket["nickname"] = "Anonymous";
+
     console.log("Connected to Browser ✅");
+
     socket.on("close", () => {console.log("Disconnected from Browser ❌");});
+    
     socket.on("message", (msg) => {
         const message = JSON.parse(msg.toString('utf-8'));
+
         switch (message.type) {
             case "new_message":
                 sockets.forEach((aSocket) => 
@@ -51,6 +47,5 @@ wss.on("connection", (socket) => {
         // socket.send(message.toString('utf-8'));
     });
 });
-*/
 
-httpServer.listen(3000, handleListen);
+server.listen(3000, handleListen);
