@@ -20,11 +20,23 @@ const httpServer = http.createServer(app);
 const wsServer = SocketIO(httpServer);   // http://localhost:3000/socket.io/socket.io.js에 접속해보면 socket.io가 제공하는 기능을 볼 수 있음 -> 이것을 client에도 적용시켜 줘야 기능을 사용할 수 있음
 
 wsServer.on("connection", (socket) => {
-    socket.on("enter_room", (msg, done) => {
-        console.log(msg);
-        setTimeout(() => {
-            done();   // back-end에서 front-end 함수 실행 가능!!
-        }, 5000);
+    socket.onAny((event) => {
+        console.log(`Socket Event:${event}`);
+    });
+    socket.on("enter_room", (roomName, done) => {
+        socket.join(roomName);
+        done();
+        // setTimeout(() => {
+        //     done("hello");   // back-end에서 front-end 함수 실행 시작
+        // }, 5000);
+        socket.to(roomName).emit("welcome");
+    });
+    socket.on("disconnecting", () => {
+        socket.rooms.forEach((room) => socket.to(room).emit("bye"));
+    });
+    socket.on("new_message", (msg, room, done) => {
+        socket.to(room).emit("new_message", msg);
+        done();
     });
 });
 
