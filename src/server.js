@@ -19,7 +19,28 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const httpServer = http.createServer(app);
 const wsServer = SocketIO(httpServer);   // http://localhost:3000/socket.io/socket.io.js에 접속해보면 socket.io가 제공하는 기능을 볼 수 있음 -> 이것을 client에도 적용시켜 줘야 기능을 사용할 수 있음
 
+// socket 정보를 이용하여 public room의 id 정보만 가져옴
+function publicRooms() {
+    const { 
+        sockets: { 
+            adapter: { sids, rooms },
+        },
+    } = wsServer;
+    const publicRooms = [];
+
+    // rooms => Maps 형태
+    rooms.forEach((_, key) => {
+        if(sids.get(key) === undefined) {
+            publicRooms.push(key);
+        }
+    });
+    return publicRooms;
+}
+
 wsServer.on("connection", (socket) => {
+    socket["nickname"] = "Anonymous";
+    wsServer.sockets.emit("room_change", publicRooms());
+
     socket.onAny((event) => {
         console.log(`Socket Event:${event}`);
     });
@@ -29,15 +50,22 @@ wsServer.on("connection", (socket) => {
         // setTimeout(() => {
         //     done("hello");   // back-end에서 front-end 함수 실행 시작
         // }, 5000);
-        socket.to(roomName).emit("welcome");
+        socket.to(roomName).emit("welcome", socket.nickname);
+        wsServer.sockets.emit("room_change", publicRooms());   // 모든 socket에 메세지 보냄 => 새로운 public room이 생겼을때 접속해 있는 모든 사람에게 알려줄 수 있음
     });
     socket.on("disconnecting", () => {
-        socket.rooms.forEach((room) => socket.to(room).emit("bye"));
+        socket.rooms.forEach((room) => 
+            socket.to(room).emit("bye", socket.nickname)
+        );
+    });
+    socket.on("disconnect", () => {
+        wsServer.sockets.emit("room_change", publicRooms());   // public room이 없어졌을때 접속해 있는 모든 사람에게 알려줄 수 있
     });
     socket.on("new_message", (msg, room, done) => {
-        socket.to(room).emit("new_message", msg);
+        socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`);
         done();
     });
+    socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
 });
 
 /*
