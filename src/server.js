@@ -1,5 +1,6 @@
 import http from "http";
-import SocketIO from "socket.io";
+import { Server } from "socket.io";
+import { instrument } from "@socket.io/admin-ui";
 import express from "express";
 
 const app = express();
@@ -17,7 +18,18 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 
 // http server와 socket.io server 같이 실행
 const httpServer = http.createServer(app);
-const wsServer = SocketIO(httpServer);   // http://localhost:3000/socket.io/socket.io.js에 접속해보면 socket.io가 제공하는 기능을 볼 수 있음 -> 이것을 client에도 적용시켜 줘야 기능을 사용할 수 있음
+const wsServer = new Server(httpServer, {
+    // admin panel을 사용하기 위한 설정 (origin 사이트 주소로 접속해서 내 프로젝트 주소를 입력하면 볼 수 있음)
+    cors: {
+        origin: ["https://admin.socket.io"],
+        credentials: true,
+    }
+});   // http://localhost:3000/socket.io/socket.io.js에 접속해보면 socket.io가 제공하는 기능을 볼 수 있음 -> 이것을 client에도 적용시켜 줘야 기능을 사용할 수 있음
+
+// admin panel을 사용하기 위한 설정
+instrument(wsServer, {
+    auth: false,
+});
 
 // socket 정보를 이용하여 public room의 id 정보만 가져옴
 function publicRooms() {
