@@ -13,6 +13,7 @@ let muted = false;
 let cameraOff = false;
 let roomName;
 let myPeerConnection;
+let myDataChannel;
 
 async function getCameras() {
     try {
@@ -87,6 +88,17 @@ function handleCameraClick() {
 
 async function handleCameraChange() {
     await getMedia(camerasSelect.value);
+    if(myPeerConnection) {
+        const videoTrack = myStream.getVideoTracks()[0];
+        const videoSender = myPeerConnection
+            .getSenders()
+            .find(sender => sender.track.kind === "video");
+        videoSender.replaceTrack(videoTrack);
+    }
+    // localtunnel로 임시 퍼블릭 서버 만들어서 테스트할 수 있음
+    // npm i -g localtunnel
+    // lt --port 3000
+    // 그러면 나오는 url에 접속해서 폰에서도 테스트 가능
 }
 
 muteBtn.addEventListener("click", handleMuteClick);
@@ -119,6 +131,11 @@ welcomeForm.addEventListener("submit", handelWelcomeSubmit);
 
 // socket code
 socket.on("welcome", async () => {
+    // data channel
+    myDataChannel = myPeerConnection.createDataChannel("chat");
+    myDataChannel.addEventListener("message", (event) => console.log(event.data));
+    console.log("made data channel");
+
     const offer = await myPeerConnection.createOffer();
     console.log("sent the offer");
     myPeerConnection.setLocalDescription(offer);
@@ -126,6 +143,11 @@ socket.on("welcome", async () => {
 });  // 이 코드는 방을 만든 host browser에서 실행됨
 
 socket.on("offer", async (offer) => {
+    myPeerConnection.addEventListener("datachannel", (event) => {
+        myDataChannel = event.channel;
+        myDataChannel.addEventListener("message", (event) => console.log(event.data));
+    });
+
     console.log("received the offer");
     myPeerConnection.setRemoteDescription(offer);
     const answer = await myPeerConnection.createAnswer();
@@ -146,7 +168,22 @@ socket.on("ice", (ice) => {
 
 // RTC code
 function makeConnection() {
-    myPeerConnection = new RTCPeerConnection();
+    myPeerConnection = new RTCPeerConnection({
+        iceServers: [
+            {
+                urls: [
+                    "stun:stun.l.google.com:19302",
+                    "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                    "stun:stun3.l.google.com:19302",
+                    "stun:stun4.l.google.com:19302",
+                    "stun:stun2.l.google.com:19305",
+                    "stun:iphone-stun.strato-iphone.de:3478"
+                ],
+            },
+          ],
+    }); // stun server를 사용해야 서로 다른 wifi를 사용하고 있어도 접속할 수 있음
+
     myPeerConnection.addEventListener("icecandidate", handleIce);
     myPeerConnection.addEventListener("track", handleAddStream);
     myStream
