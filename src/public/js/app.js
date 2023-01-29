@@ -154,6 +154,7 @@ socket.on("offer", async (offer) => {
     myPeerConnection.setLocalDescription(answer);
     socket.emit("answer", answer, roomName);
     console.log("sent the answer");
+    console.log(myPeerConnection);
 });  // 이 코드는 방에 들어간 guest browser에서 실행됨
 
 socket.on("answer", (answer) => {
@@ -189,6 +190,7 @@ function makeConnection() {
     myStream
         .getTracks()
         .forEach((track) => myPeerConnection.addTrack(track, myStream));
+    console.log(myStream);
 }
 
 function handleIce(data) {
@@ -197,6 +199,18 @@ function handleIce(data) {
 }
 
 function handleAddStream(data) {
-    const peerFace = document.getElementById("peerFace");
-    peerFace.srcObject = data.streams[0];
+    // const peerFace = document.getElementById("peerFace");
+    // peerFace.srcObject = data.streams[0];
+
+    if(data.track.kind === "video") {
+        const newStream = document.createElement("div");
+        const newVideo = document.createElement("video");
+        newVideo.autoplay = true;
+        newVideo.playsInline = true;
+        newVideo.width = 400;
+        newVideo.height = 400;
+        newVideo.srcObject = data.streams[0];
+        newStream.appendChild(newVideo);
+        call.appendChild(newStream);
+    }
 }
