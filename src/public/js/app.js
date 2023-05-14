@@ -15,6 +15,8 @@ let roomName;
 let myPeerConnection;
 let myDataChannel;
 
+let pcList = {};
+
 async function getCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -117,7 +119,7 @@ async function initCall() {
     makeConnection();
 }
 
-async function handelWelcomeSubmit(event) {
+async function handleWelcomeSubmit(event) {
     event.preventDefault();
     const input = welcomeForm.querySelector("input");
     await initCall();
@@ -126,7 +128,7 @@ async function handelWelcomeSubmit(event) {
     input.value = "";
 }
 
-welcomeForm.addEventListener("submit", handelWelcomeSubmit);
+welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 
 // socket code
